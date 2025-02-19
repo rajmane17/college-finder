@@ -43,9 +43,10 @@ function DeleteConfirmation({ onClose }) {
       if(response.data.statusCode === 200){
         await axiosInstance.delete("/api/v1/users/delete-user");
         dispatch(logout());
+
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
-        // also we need to delete images from cloudinary ==> add that functionality to backend
+        
         return navigate("/login");
       }
 

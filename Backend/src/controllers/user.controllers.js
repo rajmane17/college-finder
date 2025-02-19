@@ -69,6 +69,8 @@ const handleUserSignup = asyncHandler(async (req, res) => {
         fullName,
         avatar: avatar.url,
         coverImage: coverImage?.url || "",
+        avatarPublicId: avatar.public_id,
+        coverImgPublicId: coverImage?.public_id || "",
         email,
         password,
         city,
@@ -80,7 +82,7 @@ const handleUserSignup = asyncHandler(async (req, res) => {
 
 
     const createdUser = await User.findById(user._id).select(
-        "-password -refreshToken"
+        "-password -refreshToken -avatarPublicId, -coverImgPublicId"
     )
 
     if (!createdUser) {
@@ -327,11 +329,18 @@ const handlePasswordChange = asyncHandler(async (req, res) => {
 const handleDeleteUser = asyncHandler(async (req, res) => {
     // Delete user from database
     const deleteUser = await User.findByIdAndDelete(req.user._id);
-    // how to get public_id ?
-    // const deleteAvatar = await deleteFromCloudinary(deleteUser.avatar);
 
     if (!deleteUser) {
         throw new ApiError(404, "User not found")
+    }
+
+    //Deleting the avatar file from cloudinary
+    await deleteFromCloudinary(deleteUser.avatarPublicId);
+    // console.log("avatar deleted successfully");
+    
+    if(deleteUser.coverImgPublicId !== ""){
+        await deleteFromCloudinary(deleteUser.coverImgPublicId);
+        // console.log("Cover image deleted successfully");
     }
 
     const options = {
