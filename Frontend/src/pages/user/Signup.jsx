@@ -7,11 +7,16 @@ import {Link, useNavigate} from "react-router-dom"
 import {useDispatch} from "react-redux"
 import axios from "axios"
 import { signup } from "../../app/features/authSlice"
+import OTPInput from "./otp-login/OtpInput";
 
 const SignupForm = () => {
 
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);
+    const navigate = useNavigate();
+    const dispatch = useDispatch();
+    const [showOtpInput, setShowOtpInput] = useState(false);
+    const [tempUserData, setTempUserData] = useState(null);
 
     const [formData, setFormData] = useState({
         fullName: "",
@@ -22,58 +27,66 @@ const SignupForm = () => {
         applicantType: null
     })
 
-    const navigate = useNavigate();
-    const dispatch = useDispatch();
 
     // Add email validation function
     const isValidEmail = (email) => {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        setError('');
-        setIsLoading(true);
+    const validateForm = () => {
 
         //input data validation
         if (!formData.fullName.trim()) {
             setError('Please enter your full name');
             setIsLoading(false);
-            return navigate("/signup");
+            return false;
         } else if (!/^[A-Za-z\s]+$/.test(formData.fullName)) {
             setError('Full name should only contain letters and spaces');
             setIsLoading(false);
-            return navigate("/signup");
+            return false;
         }
 
         if (!isValidEmail(formData.email)) {
             setError('Please enter a valid email address');
             setIsLoading(false);
-            return navigate("/signup");
+            return false;
         }
 
         if (!formData.avatar) {
             setError('Please upload a profile picture');
             setIsLoading(false);
-            return navigate("/signup");
+            return false;
         }
 
         if (formData.password.length < 6) {
             setError('Password must be at least 6 characters long');
             setIsLoading(false);
-            return navigate("/signup");
+            return false;
         }
 
         if (!formData.city) {
             setError('Please select a city');
             setIsLoading(false);
-            return navigate("/signup");
+            return false;
         }
 
         if (formData.applicantType !== "admission seeker" && formData.applicantType !== "reviewer") {
             setError('Please select an applicant type');
             setIsLoading(false);
-            return navigate("/signup");
+            return false;
+        }
+
+        return true;
+    }
+
+    const handleInitialSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setIsLoading(true);
+
+        if (!validateForm()) {
+            setIsLoading(false);
+            return;
         }
 
         try {
@@ -87,7 +100,7 @@ const SignupForm = () => {
 
             // 3. Send the form data to the server using Axios
             const response = await axios.post(
-                `${import.meta.env.VITE_BASE_URL}/api/v1/users/signup`,
+                `${import.meta.env.VITE_BASE_URL}/api/v1/users/initiate-signup`,
                 formDataToSend,
                 {
                     headers: {
@@ -96,13 +109,40 @@ const SignupForm = () => {
                     withCredentials: true // Include credentials in the request
                 }
             );
-            console.log(response);
+            // console.log(response);
+
+            // store temperory users data
+            setTempUserData(response.data.data);
+            setShowOtpInput(true);
+        } catch (err) {
+            handleError(err);
+        } finally {
+            setIsLoading(false);
+        }
+
+    }
+
+    const handleOTPVerification = async (otpValue) => {
+        setIsLoading(true);
+        setError('');
+
+        try {
+            const response = await axios.post(
+                `${import.meta.env.VITE_BASE_URL}/api/v1/users/verify-otp`,
+                {
+                    email: formData.email,
+                    otp: otpValue
+                },
+                {
+                    withCredentials: true
+                }
+            );
 
             // Store token in localStorage
             localStorage.setItem('accessToken', response.data.data.accessToken);
 
             const userData = response.data.data.createdUser;
-            console.log(userData);
+            // console.log(userData);
 
             const user = {
                 fullName: userData.fullName,
@@ -118,35 +158,42 @@ const SignupForm = () => {
 
             // navigating to home page
             navigate('/');
-        } catch (err) {
-            if (err.response) {
-                switch (err.response.status) {
-                    case 409:
-                        setError('Email already exists');
-                        break;
-                    case 400:
-                        setError('Invalid signup information');
-                        break;
-                    case 500:
-                        setError('Server error. Please try again later.');
-                        break;
-                    default:
-                        setError('Signup failed. Please try again.');
-                }
-            } else if (err.request) {
-                setError('No response from server. Check your internet connection.');
-            } else {
-                setError('An unexpected error occurred');
-            }
-        } finally {
-            setIsLoading(false);
+
+        } catch (error) {
+            handleError(error);
+        }finally {
+            setIsLoading(false)
         }
-        
+    }
+
+    const handleError = (err) => {
+        if (err.response) {
+            switch (err.response.status) {
+                case 409:
+                    setError('Email already exists');
+                    break;
+                case 400:
+                    setError(err.response.data.message || 'Invalid information');
+                    break;
+                case 401:
+                    setError('Invalid OTP');
+                    break;
+                case 500:
+                    setError('Server error. Please try again later.');
+                    break;
+                default:
+                    setError('Operation failed. Please try again.');
+            }
+        } else if (err.request) {
+            setError('No response from server. Check your internet connection.');
+        } else {
+            setError('An unexpected error occurred');
+        }
     };
 
     return (
         <div class="min-h-screen bg-black flex items-center justify-center p-4">
-            <div class="w-full max-w-2xl p-6 space-y-6 rounded-lg bg-neutral-900 text-white">
+            {!showOtpInput ? <div class="w-full max-w-2xl p-6 space-y-6 rounded-lg bg-neutral-900 text-white">
                 <div class="space-y-2">
                     <h1 class="text-2xl font-semibold">Create an account</h1>
                     <p class="text-neutral-400">
@@ -287,10 +334,11 @@ const SignupForm = () => {
 
                     <button
                         type="submit"
-                        onClick={handleSubmit}
-                        class="w-full py-2 px-4 rounded-md bg-white text-black font-medium hover:bg-neutral-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white focus:ring-offset-neutral-900"
+                        onClick={handleInitialSubmit}
+                        disabled={isLoading}
+                        className="w-full py-2 px-4 rounded-md bg-white text-black font-medium hover:bg-neutral-200 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-white focus:ring-offset-neutral-900 disabled:opacity-50"
                     >
-                        Create Account
+                        {isLoading ? "Processing..." : "Create Account"}
                     </button>
                 </form>
 
@@ -300,7 +348,7 @@ const SignupForm = () => {
                         Login
                     </Link>
                 </div>
-            </div>
+            </div> : <OTPInput length={6} onVerify={handleOTPVerification} isLoading={isLoading}/>}
         </div>
     );
 };

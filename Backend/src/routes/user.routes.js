@@ -2,11 +2,12 @@ const express = require("express");
 const router = express.Router();
 const { upload } = require("../middlewares/multer.middleware.js")
 const { verifyJWT } = require("../middlewares/auth.middleware.js")
+
 //controller imports
-const { handleUserSignup, handleUserLogin, handleUserLogout, checkPassword,
+const { handleUserSignup, handleUserLogin, handleUserLogout, checkPassword, verifyOTP,
     handleAvatarChange, handleCoverImgChange, handleUserDetailsUpdate, handlePasswordChange, handleDeleteUser } = require("../controllers/user.controllers");
 
-router.post("/signup",
+router.post("/initiate-signup",
     upload.fields([
         {
             name: "avatar",
@@ -20,6 +21,8 @@ router.post("/signup",
     handleUserSignup);
 
 router.post("/login", handleUserLogin);
+
+router.post('/verify-otp', verifyOTP);
 
 router.get("/logout", verifyJWT, handleUserLogout);
 

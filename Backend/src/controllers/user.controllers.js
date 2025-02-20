@@ -2,11 +2,16 @@ const User = require("../models/user.model");
 const cloudinary = require("cloudinary");
 
 // utils import
-const {uploadOnCloudinary, deleteFromCloudinary} = require("../utils/cloudinary");
+const { uploadOnCloudinary, deleteFromCloudinary } = require("../utils/cloudinary");
 const { asyncHandler } = require("../utils/asyncHandler");
 const { ApiError } = require("../utils/apiError");
 const { ApiResponse } = require("../utils/apiResponse");
 const bcrypt = require("bcrypt")
+
+//under test
+const Otp = require("../models//otp.model");
+const generateOTP = require("../utils/generateOtp");
+const sendOTPEmail = require('../utils/sendEmail');
 
 
 const generateAccessAndRefereshTokens = async (userId) => {
@@ -65,21 +70,123 @@ const handleUserSignup = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Avatar file is required")
     }
 
-    const user = await User.create({
+    // Generate OTP
+    const otp = generateOTP();
+
+    // Save OTP to database
+    await Otp.create({
+        email,
+        otp
+    });
+
+    // Send OTP via email
+    const emailSent = await sendOTPEmail(email, otp);
+    if (!emailSent) {
+        return res.
+            status(500).json(
+                new ApiError(500, "Failed to send OTP email")
+            );
+    }
+
+    req.session.tempUser = {
         fullName,
+        email,
+        password,
+        city,
+        applicantType,
         avatar: avatar.url,
         coverImage: coverImage?.url || "",
         avatarPublicId: avatar.public_id,
         coverImgPublicId: coverImage?.public_id || "",
-        email,
-        password,
-        city,
-        applicantType
+    }
+    console.log(req.session.tempUser)
+
+    return res.status(200).json(
+        new ApiResponse(200, {
+            email
+        },
+            "OTP sent successfully")
+    )
+
+    // const user = await User.create({
+    //     fullName,
+    //     avatar: avatar.url,
+    //     coverImage: coverImage?.url || "",
+    //     avatarPublicId: avatar.public_id,
+    //     coverImgPublicId: coverImage?.public_id || "",
+    //     email,
+    //     password,
+    //     city,
+    //     applicantType
+    // })
+
+    // //In this function the refresh token is being set automatically and we are taking accessToken here.
+    // const { accessToken } = await generateAccessAndRefereshTokens(user._id);
+
+
+    // const createdUser = await User.findById(user._id).select(
+    //     "-password -refreshToken -avatarPublicId, -coverImgPublicId"
+    // )
+
+    // if (!createdUser) {
+    //     throw new ApiError(500, "Something went wrong while registering the user")
+    // }
+
+    // const options = {
+    //     httpOnly: true,
+    //     secure: process.env.NODE_ENV === "production",
+    //     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    //     path: "/",
+    //     domain: process.env.NODE_ENV === "production" ? process.env.DOMAIN : "localhost"
+    // }
+
+    // return res
+    //     .status(201)
+    //     .cookie("accessToken", accessToken, options)
+    //     .json(
+    //         new ApiResponse(200,
+    //             {
+    //                 createdUser, accessToken
+    //             },
+    //             "User registered Successfully")
+    //     )
+})
+
+const verifyOTP = asyncHandler(async (req, res) => {
+    const { email, otp } = req.body;
+
+    // Verify OTP
+    const otpRecord = await Otp.findOne({ email, otp });
+    if (!otpRecord) {
+        return res.status(401).json(
+            new ApiError("401", "Invalid or expired OTP")
+        );
+    }
+
+    // Get temporary user data
+    const userData = req.session.tempUser;
+    if (!userData) {
+        return res.status(400).json(
+            new ApiError(400, "Signup session expired")
+        )
+    }
+
+    // create user
+    const user = await User.create({
+        fullName: userData.fullName,
+        avatar: userData.avatar,
+        coverImage: userData.coverImage,
+        avatarPublicId: userData.avatarPublicId,
+        coverImgPublicId: userData.coverImgPublicId,
+        email: userData.email,
+        password: userData.password,
+        city: userData.city,
+        applicantType: userData.applicantType
     })
+    console.log(user);
 
     //In this function the refresh token is being set automatically and we are taking accessToken here.
     const { accessToken } = await generateAccessAndRefereshTokens(user._id);
-
 
     const createdUser = await User.findById(user._id).select(
         "-password -refreshToken -avatarPublicId, -coverImgPublicId"
@@ -88,6 +195,10 @@ const handleUserSignup = asyncHandler(async (req, res) => {
     if (!createdUser) {
         throw new ApiError(500, "Something went wrong while registering the user")
     }
+
+    // Clear temporary data
+    delete req.session.tempUser;
+    await Otp.deleteOne({ email });
 
     const options = {
         httpOnly: true,
@@ -101,13 +212,15 @@ const handleUserSignup = asyncHandler(async (req, res) => {
         .status(201)
         .cookie("accessToken", accessToken, options)
         .json(
-            new ApiResponse(200,
+            new ApiResponse(
+                201,
                 {
                     createdUser, accessToken
                 },
-                "User registered Successfully")
+                "User registered Successfully"
+            )
         )
-})
+});
 
 const handleUserLogin = asyncHandler(async (req, res) => {
     const { email, password } = req.body;
@@ -134,7 +247,7 @@ const handleUserLogin = asyncHandler(async (req, res) => {
 
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
-const options = {
+    const options = {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
@@ -337,8 +450,8 @@ const handleDeleteUser = asyncHandler(async (req, res) => {
     //Deleting the avatar file from cloudinary
     await deleteFromCloudinary(deleteUser.avatarPublicId);
     // console.log("avatar deleted successfully");
-    
-    if(deleteUser.coverImgPublicId !== ""){
+
+    if (deleteUser.coverImgPublicId !== "") {
         await deleteFromCloudinary(deleteUser.coverImgPublicId);
         // console.log("Cover image deleted successfully");
     }
@@ -360,20 +473,20 @@ const handleDeleteUser = asyncHandler(async (req, res) => {
 })
 
 const checkPassword = asyncHandler(async (req, res) => {
-    const {password} = req.body;
+    const { password } = req.body;
 
-    if(!password){
+    if (!password) {
         throw new ApiError(400, "Please enter your password")
     }
 
     const getUser = await User.findById(req.user._id);
 
-    if(!getUser){
+    if (!getUser) {
         throw new ApiError(500, "Something went wrong while fetching the user details.")
     }
     const isPasswordCorrect = await bcrypt.compare(password, getUser.password);
 
-    if(!isPasswordCorrect){
+    if (!isPasswordCorrect) {
         throw new ApiError(401, "Incorrect password")
     }
 
@@ -383,7 +496,7 @@ const checkPassword = asyncHandler(async (req, res) => {
 })
 
 module.exports = {
-    handleUserSignup, handleUserLogin, handleUserLogout,
+    handleUserSignup, handleUserLogin, handleUserLogout, verifyOTP,
     handleAvatarChange, handleCoverImgChange, handleUserDetailsUpdate,
     handlePasswordChange, handleDeleteUser, checkPassword
 }
