@@ -317,7 +317,7 @@ const handleCoverImgChange = asyncHandler(async (req, res) => {
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 
     if (!coverImage) {
-        throw new ApiError(400, "Error while uploading cover image")
+        throw new ApiError(500, "Error while uploading cover image")
     }
 
     const updatedUser = await User.findByIdAndUpdate(

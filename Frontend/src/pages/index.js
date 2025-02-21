@@ -5,6 +5,7 @@ import UserProtectedWrapper from "./user/UserProtectedWrapper"
 import ProfilePage from "./user/ProfilePage"
 import DeleteConfirmation from "./user/DeleteConfirmation"
 import ProfileImageModal from "./user/ProfileImageModal"
+import CoverImageModal from "./user/CoverImageModal"
 
 export {
     Login,
@@ -13,5 +14,6 @@ export {
     UserProtectedWrapper,
     ProfilePage,
     DeleteConfirmation,
-    ProfileImageModal
+    ProfileImageModal,
+    CoverImageModal
 }

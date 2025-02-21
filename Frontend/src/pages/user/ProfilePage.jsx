@@ -4,13 +4,13 @@ import { useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 
 // Model imports
-import DeleteConfirmation from './DeleteConfirmation';
-import ProfileImageModal from './ProfileImageModal';
+import { DeleteConfirmation, ProfileImageModal, CoverImageModal } from "../index"
 
 const ProfilePage = () => {
 
   const [isProfileDeleteModelOpen, setIsProfileDeleteModelOpen] = useState(false);
   const [isProfileImageModelOpen, setIsProfileImageModelOpen] = useState(false);
+  const [isCoverImageModelOpen, setIsCoverImageModel] = useState(false);
 
   const userData = useSelector(state => state.auth);
   const city = (userData.city).toUpperCase();
@@ -35,11 +35,11 @@ const ProfilePage = () => {
         <div className={`w-full h-full ${isDarkMode ? "dark:bg-blue-800" : "bg-blue-700"} group relative`}>
           <img
             className="w-full h-full object-cover transition-all duration-300 " // group-hover:blur-sm
-            src={userData.coverImg}
+            src={userData?.coverImage}
           />
           {/* Cover Image Edit Button */}
           <button
-            onClick={() => navigate('/update-cover')}
+            onClick={() => setIsCoverImageModel(true)}
             className="absolute top-2 right-2 p-1.5 bg-white rounded-full hover:bg-gray-100 transition-all duration-300 opacity-0 group-hover:opacity-100"
           >
             <PencilIcon className="w-4 h-4 text-gray-700" />
@@ -51,7 +51,7 @@ const ProfilePage = () => {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Profile Section */}
         <div className="relative -mt-24">
-          <div className={`rounded-lg shadow p-6 ${isDarkMode ? "dark:bg-gray-800" : "bg-white"}`}>
+          <div className={`rounded-lg shadow p-6 ${isDarkMode ? "dark:bg-gray-800" : "bg-white drop-shadow-xl"}`}>
             {/* Profile Picture */}
             <div className="absolute -top-16 left-6">
               <div className="relative group">
@@ -108,6 +108,9 @@ const ProfilePage = () => {
 
       {/* Edit Avatar Modal */}
       {isProfileImageModelOpen && <ProfileImageModal isOpen={isProfileImageModelOpen} onClose={() => { setIsProfileImageModelOpen(false) }} />}
+
+      {/* Edit Cover Image Modal */}
+      {isCoverImageModelOpen && <CoverImageModal isOpen={isCoverImageModelOpen} onClose={() => { setIsCoverImageModel(false) }} />}
     </div>
   );
 }
