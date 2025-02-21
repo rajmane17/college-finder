@@ -40,13 +40,6 @@ const userSchema = new mongoose.Schema({
     refreshToken: {
         type: String
     },
-    avatarPublicId:{
-        type: String, // we will store the cloudinary's public id for avatar(It will be used to delete or get information about avatar image)
-        required: true
-    },
-    coverImgPublicId: {
-        type: String,
-    }
 }, { timestamps: true })
 
 userSchema.pre("save", async function (next) {

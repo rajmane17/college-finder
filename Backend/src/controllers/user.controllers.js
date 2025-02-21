@@ -8,7 +8,6 @@ const { ApiError } = require("../utils/apiError");
 const { ApiResponse } = require("../utils/apiResponse");
 const bcrypt = require("bcrypt")
 
-//under test
 const Otp = require("../models//otp.model");
 const generateOTP = require("../utils/generateOtp");
 const sendOTPEmail = require('../utils/sendEmail');
@@ -96,8 +95,6 @@ const handleUserSignup = asyncHandler(async (req, res) => {
         applicantType,
         avatar: avatar.url,
         coverImage: coverImage?.url || "",
-        avatarPublicId: avatar.public_id,
-        coverImgPublicId: coverImage?.public_id || "",
     }
     console.log(req.session.tempUser)
 
@@ -107,49 +104,6 @@ const handleUserSignup = asyncHandler(async (req, res) => {
         },
             "OTP sent successfully")
     )
-
-    // const user = await User.create({
-    //     fullName,
-    //     avatar: avatar.url,
-    //     coverImage: coverImage?.url || "",
-    //     avatarPublicId: avatar.public_id,
-    //     coverImgPublicId: coverImage?.public_id || "",
-    //     email,
-    //     password,
-    //     city,
-    //     applicantType
-    // })
-
-    // //In this function the refresh token is being set automatically and we are taking accessToken here.
-    // const { accessToken } = await generateAccessAndRefereshTokens(user._id);
-
-
-    // const createdUser = await User.findById(user._id).select(
-    //     "-password -refreshToken -avatarPublicId, -coverImgPublicId"
-    // )
-
-    // if (!createdUser) {
-    //     throw new ApiError(500, "Something went wrong while registering the user")
-    // }
-
-    // const options = {
-    //     httpOnly: true,
-    //     secure: process.env.NODE_ENV === "production",
-    //     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    //     path: "/",
-    //     domain: process.env.NODE_ENV === "production" ? process.env.DOMAIN : "localhost"
-    // }
-
-    // return res
-    //     .status(201)
-    //     .cookie("accessToken", accessToken, options)
-    //     .json(
-    //         new ApiResponse(200,
-    //             {
-    //                 createdUser, accessToken
-    //             },
-    //             "User registered Successfully")
-    //     )
 })
 
 const verifyOTP = asyncHandler(async (req, res) => {
@@ -176,8 +130,6 @@ const verifyOTP = asyncHandler(async (req, res) => {
         fullName: userData.fullName,
         avatar: userData.avatar,
         coverImage: userData.coverImage,
-        avatarPublicId: userData.avatarPublicId,
-        coverImgPublicId: userData.coverImgPublicId,
         email: userData.email,
         password: userData.password,
         city: userData.city,
@@ -189,7 +141,7 @@ const verifyOTP = asyncHandler(async (req, res) => {
     const { accessToken } = await generateAccessAndRefereshTokens(user._id);
 
     const createdUser = await User.findById(user._id).select(
-        "-password -refreshToken -avatarPublicId, -coverImgPublicId"
+        "-password -refreshToken"
     )
 
     if (!createdUser) {
@@ -324,7 +276,7 @@ const handleAvatarChange = asyncHandler(async (req, res) => {
     const avatar = await uploadOnCloudinary(avatarLocalPath)
 
     if (!avatar) {
-        throw new ApiError(400, "Error while uploading avatar")
+        throw new ApiError(500, "Error while uploading avatar")
     }
 
     const updatedUser = await User.findByIdAndUpdate(
@@ -448,11 +400,15 @@ const handleDeleteUser = asyncHandler(async (req, res) => {
     }
 
     //Deleting the avatar file from cloudinary
-    await deleteFromCloudinary(deleteUser.avatarPublicId);
-    // console.log("avatar deleted successfully");
+    if (deleteUser.avatar) {
+        const oldAvatarPublicId = deleteUser.avatar.split('/').pop().split('.')[0];
+        await cloudinary.uploader.destroy(oldAvatarPublicId);
+        // console.log("avatar deleted successfully");
+    }
 
-    if (deleteUser.coverImgPublicId !== "") {
-        await deleteFromCloudinary(deleteUser.coverImgPublicId);
+    if (deleteUser.coverImage !== "") {
+        const oldCoverImagePublicId = deleteUser.avatar.split('/').pop().split('.')[0];
+        await cloudinary.uploader.destroy(oldCoverImagePublicId);
         // console.log("Cover image deleted successfully");
     }
 

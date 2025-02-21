@@ -1,4 +1,4 @@
-import {createSlice} from "@reduxjs/toolkit"
+import { createSlice } from "@reduxjs/toolkit"
 
 const initialState = {
     fullName: "",
@@ -6,6 +6,7 @@ const initialState = {
     password: "",
     email: "",
     avatar: null,
+    coverImage: null,
     applicantType: null,
     accessToken: null,
     isAuthenticated: false,
@@ -39,8 +40,20 @@ export const authSlice = createSlice({
             state.isAuthenticated = true;
             state.error = null;
         },
-        logout: () => {
-            return initialState;
+        logout: (state) => {
+            // Clear all sensitive data
+            Object.assign(state, initialState);
+
+        },
+        editAvatar: (state, action) => {
+            state.avatar = action.payload;
+        },
+        editCoverImg: (state, action) => {
+            state.coverImage = action.payload
+        },
+        EditProfile: (state, action) => {
+            // Update only the provided fields
+            Object.assign(state, action.payload);
         },
         setError: (state, action) => {
             state.error = action.payload;
@@ -53,5 +66,5 @@ export const authSlice = createSlice({
 })
 
 // ye components me kam aaenge
-export const { login, signup, logout, setError, setLoading } = authSlice.actions;
+export const { login, signup, logout, setError, setLoading, editAvatar, editCoverImg } = authSlice.actions;
 export default authSlice.reducer;

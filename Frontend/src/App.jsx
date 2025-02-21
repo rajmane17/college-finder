@@ -22,11 +22,6 @@ function App() {
               <ProfilePage />
             </UserProtectedWrapper>
           } />
-          {/* <Route path="/confirm" element={
-            <UserProtectedWrapper>
-              <Confirm />
-            </UserProtectedWrapper>
-          } /> */}
         </Route>
       </Routes>
     </>

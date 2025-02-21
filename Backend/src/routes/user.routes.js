@@ -4,8 +4,25 @@ const { upload } = require("../middlewares/multer.middleware.js")
 const { verifyJWT } = require("../middlewares/auth.middleware.js")
 
 //controller imports
-const { handleUserSignup, handleUserLogin, handleUserLogout, checkPassword, verifyOTP,
-    handleAvatarChange, handleCoverImgChange, handleUserDetailsUpdate, handlePasswordChange, handleDeleteUser } = require("../controllers/user.controllers");
+const { 
+    handleUserSignup,
+    handleUserLogin, 
+    handleUserLogout, 
+    checkPassword, 
+    verifyOTP,
+    handleAvatarChange, 
+    handleCoverImgChange, 
+    handleUserDetailsUpdate,
+    handlePasswordChange, 
+    handleDeleteUser 
+} = require("../controllers/user.controllers");
+
+// Debug middleware
+const debugMiddleware = (req, res, next) => {
+  console.log('Request files:', req.files);
+  console.log('Request body:', req.body);
+  next();
+};
 
 router.post("/initiate-signup",
     upload.fields([

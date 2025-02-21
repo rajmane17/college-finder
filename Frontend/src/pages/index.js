@@ -3,8 +3,8 @@ import Signup from "./user/Signup"
 import Home from "./Home"
 import UserProtectedWrapper from "./user/UserProtectedWrapper"
 import ProfilePage from "./user/ProfilePage"
-import EditProfile from "./user/EditProfile"
 import DeleteConfirmation from "./user/DeleteConfirmation"
+import ProfileImageModal from "./user/ProfileImageModal"
 
 export {
     Login,
@@ -12,6 +12,6 @@ export {
     Home,
     UserProtectedWrapper,
     ProfilePage,
-    EditProfile,
-    DeleteConfirmation
+    DeleteConfirmation,
+    ProfileImageModal
 }
