@@ -6,6 +6,8 @@ import ProfilePage from "./user/ProfilePage"
 import DeleteConfirmation from "./user/DeleteConfirmation"
 import ProfileImageModal from "./user/ProfileImageModal"
 import CoverImageModal from "./user/CoverImageModal"
+import ProfileEditModal from "./user/ProfileEditModal"
+import ForgotPassword from "./user/ForgotPassword"
 
 export {
     Login,
@@ -15,5 +17,7 @@ export {
     ProfilePage,
     DeleteConfirmation,
     ProfileImageModal,
-    CoverImageModal
+    CoverImageModal,
+    ProfileEditModal,
+    ForgotPassword
 }

@@ -27,4 +27,6 @@ const verifyJWT = asyncHandler(async(req, res, next) => {
     
 })
 
-module.exports = {verifyJWT}
+const isReviewer = asyncHandler((req, res, next) => {})
+
+module.exports = {verifyJWT, isReviewer}

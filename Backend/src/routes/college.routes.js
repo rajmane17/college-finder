@@ -12,7 +12,7 @@ router.get("/:collegeId", verifyJWT, getCollege)
 router.get("/city/:city", verifyJWT, getCollegesAccordingToCity)
 
 // adding a new college
-router.post("/", verifyJWT, isReviewer, upload.single("collegeImg"), handleAddCollege);
+router.post("/", verifyJWT, isReviewer, upload.single("collegeImage"), handleAddCollege);
 
 // how many people have clicked on a college will be shown
 router.get("/analytics/:collegeId", verifyJWT, getAnalytics)

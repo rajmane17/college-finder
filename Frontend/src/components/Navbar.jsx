@@ -6,21 +6,24 @@ import React, { useState, useEffect } from 'react';
 import { Menu, Moon, Sun, User } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
 import { toggleTheme, setTheme } from '../app/features/themeSlice';
-import { logout } from "../app/features/authSlice";
+import { logout, setError } from "../app/features/authSlice";
+import axios from "axios"
 
 const Navbar = () => {
 
     //for mobile view
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    
+
     const [selectedCity, setSelectedCity] = useState("Mumbai");
     const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
     const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
     const dispatch = useDispatch();
     const getAvatar = useSelector((state) => state.auth.avatar);
-    
     const isDarkMode = useSelector((state) => state.theme.darkMode);
+    const city = useSelector(state => state.auth.city);
+
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         if (isDarkMode) {
@@ -30,10 +33,32 @@ const Navbar = () => {
         }
     }, [isDarkMode]);
 
-    const handleLogout = () => {
-        dispatch(logout());
-        localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
+    function capitalizeFirstLetter(val) {
+        return String(val).charAt(0).toUpperCase() + String(val).slice(1);
+    }
+
+    useEffect(() => {
+        const cityName =  capitalizeFirstLetter(city);
+        setSelectedCity(cityName);
+    }, [selectedCity])
+
+    const handleLogout = async () => {
+        const axiosInstance = axios.create({
+            baseURL: import.meta.env.VITE_BASE_URL,
+            withCredentials: true,
+        })
+        setIsLoading(true);
+
+        try {
+            await axiosInstance.get("/api/v1/users/logout");
+            dispatch(logout());
+            localStorage.removeItem("accessToken");
+            localStorage.removeItem("refreshToken");
+        } catch (error) {
+            console.log(error)
+        } finally{
+            setIsLoading(false);
+        }
     };
 
     useEffect(() => {
@@ -104,7 +129,7 @@ const Navbar = () => {
                             )}
                         </div>
                         <a href="/contact" className="px-3 py-2 rounded-md hover:bg-gray-100 hover:text-white dark:hover:bg-gray-700">
-                            Contact Us
+                            Contact us
                         </a>
                         <a href="/review" className="px-3 py-2 rounded-md hover:bg-gray-100 hover:text-white dark:hover:bg-gray-700">
                             Review our app

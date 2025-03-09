@@ -1,5 +1,5 @@
 import { Routes, Route } from "react-router-dom"
-import { Login, Signup, Home, UserProtectedWrapper, ProfilePage } from "./pages"
+import { Login, Signup, Home, UserProtectedWrapper, ProfilePage, ForgotPassword } from "./pages"
 import { Error, Layout } from "./components"
 
 function App() {
@@ -7,6 +7,7 @@ function App() {
     <>
       <Routes>
         <Route path="/login" element={<Login />} />
+        <Route path="/login/forgot-password" element={<ForgotPassword />}/>
         <Route path="/signup" element={<Signup />} />
         <Route path="*" element={<Error />} />
 

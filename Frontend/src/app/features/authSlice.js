@@ -51,7 +51,7 @@ export const authSlice = createSlice({
         editCoverImg: (state, action) => {
             state.coverImage = action.payload
         },
-        EditProfile: (state, action) => {
+        editProfile: (state, action) => {
             // Update only the provided fields
             Object.assign(state, action.payload);
         },
@@ -66,5 +66,5 @@ export const authSlice = createSlice({
 })
 
 // ye components me kam aaenge
-export const { login, signup, logout, setError, setLoading, editAvatar, editCoverImg } = authSlice.actions;
+export const { login, signup, logout, setError, setLoading, editAvatar, editCoverImg, editProfile } = authSlice.actions;
 export default authSlice.reducer;

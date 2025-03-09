@@ -451,8 +451,18 @@ const checkPassword = asyncHandler(async (req, res) => {
     )
 })
 
+const forgotPassword = asyncHandler(async (req, res) => {})
+
 module.exports = {
-    handleUserSignup, handleUserLogin, handleUserLogout, verifyOTP,
-    handleAvatarChange, handleCoverImgChange, handleUserDetailsUpdate,
-    handlePasswordChange, handleDeleteUser, checkPassword
+    handleUserSignup,
+    handleUserLogin,
+    handleUserLogout,
+    verifyOTP,
+    handleAvatarChange, 
+    handleCoverImgChange, 
+    handleUserDetailsUpdate,
+    handlePasswordChange, 
+    handleDeleteUser, 
+    checkPassword,
+    forgotPassword
 }

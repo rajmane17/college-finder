@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import axios from "axios"
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { login } from "../../app/features/authSlice"
 
 const LoginForm = () => {
@@ -22,6 +22,31 @@ const LoginForm = () => {
     const isValidEmail = (email) => {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     };
+
+    function handleErr(error){
+        if (error.response) {
+            switch (error.response.status) {
+                case 400:
+                    setError("Please enter both email and password");
+                    break;
+                case 401:
+                    setError("Invalid email or password");
+                    break;
+                case 404:
+                    setError("User not found");
+                    break;
+                case 500:
+                    setError('Server error. Please try again later.');
+                    break;
+                default:
+                    setError("Login failed. please try again later.")
+            }
+        } else if (error.request) {
+            setError('No response from server. Check your internet connection or server is unavailabe temperory.');
+        } else {
+            setError("An unexpected error occurred.")
+        }
+    }
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -42,7 +67,6 @@ const LoginForm = () => {
 
         try {
 
-
             const axiosInstance = axios.create({
                 baseURL: import.meta.env.VITE_BASE_URL,
                 withCredentials: true,
@@ -55,7 +79,7 @@ const LoginForm = () => {
                 email,
                 password
             });
-            console.log(response);
+            // console.log(response);
 
             const data = response.data.data;
 
@@ -81,28 +105,7 @@ const LoginForm = () => {
             navigate("/")
 
         } catch (error) {
-            if (error.response) {
-                switch (error.response.status) {
-                    case 400:
-                        setError("Please enter both email and password");
-                        break;
-                    case 401:
-                        setError("Invalid email or password");
-                        break;
-                    case 404:
-                        setError("User not found");
-                        break;
-                    case 500:
-                        setError('Server error. Please try again later.');
-                        break;
-                    default:
-                        setError("Login failed. please try again later.")
-                }
-            } else if (error.request) {
-                setError('No response from server. Check your internet connection or server is unavailabe temperory.');
-            } else {
-                setError("An unexpected error occurred.")
-            }
+            handleErr(error)
         } finally {
             setIsLoading(false);
         }
@@ -146,12 +149,12 @@ const LoginForm = () => {
                             <label htmlFor="password" className="block text-sm">
                                 Password
                             </label>
-                            <a
-                                href="#"
+                            <Link
+                            to={"/login/forgot-password"}
                                 className="text-sm text-neutral-400 hover:text-white transition-colors"
                             >
                                 Forgot your password?
-                            </a>
+                            </Link>
                         </div>
                         <input
                             id="password"

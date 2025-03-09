@@ -1,24 +1,28 @@
 import { useEffect, useState } from 'react';
 import { MapPin, PencilIcon } from 'lucide-react';
 import { useSelector } from "react-redux"
-import { useNavigate } from "react-router-dom"
 
 // Model imports
-import { DeleteConfirmation, ProfileImageModal, CoverImageModal } from "../index"
+import { DeleteConfirmation, ProfileImageModal, CoverImageModal, ProfileEditModal } from "../index"
 
 const ProfilePage = () => {
 
   const [isProfileDeleteModelOpen, setIsProfileDeleteModelOpen] = useState(false);
   const [isProfileImageModelOpen, setIsProfileImageModelOpen] = useState(false);
   const [isCoverImageModelOpen, setIsCoverImageModel] = useState(false);
+  const [isProfileEditModalOpen, setIsProfileEditModalOpen] = useState(false);
 
   const userData = useSelector(state => state.auth);
   const city = (userData.city).toUpperCase();
   const name = (userData.fullName).toUpperCase();
   const avatar = userData.avatar;
 
+  const userInfo = {
+    fullName: name,
+    city: city
+  }
+
   const isDarkMode = useSelector((state) => state.theme.darkMode);
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (isDarkMode) {
@@ -83,7 +87,7 @@ const ProfilePage = () => {
               {/* Action Buttons */}
               <div className="mt-4 flex space-x-3">
                 <button
-                  onClick={() => navigate("/edit-profile")}
+                  onClick={() => setIsProfileEditModalOpen(true)}
                   className={`px-4 py-2 rounded-full text-white font-semibold ${isDarkMode ? "dark:bg-blue-500 dark:hover:bg-blue-600" : "hover:bg-blue-700 bg-blue-600"}`}
                 >
                   Edit Profile
@@ -111,6 +115,9 @@ const ProfilePage = () => {
 
       {/* Edit Cover Image Modal */}
       {isCoverImageModelOpen && <CoverImageModal isOpen={isCoverImageModelOpen} onClose={() => { setIsCoverImageModel(false) }} />}
+
+      {/* Edit Profile Details Modal */}
+      {isProfileEditModalOpen && <ProfileEditModal isOpen={isProfileEditModalOpen} onClose={() => { setIsProfileEditModalOpen(false) }} initialData={userInfo}/>}
     </div>
   );
 }

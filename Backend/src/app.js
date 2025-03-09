@@ -17,8 +17,10 @@ app.use(session({ secret: "your-secret", resave: false, saveUninitialized: true 
 
 //routes import
 const userRouter = require("./routes/user.routes");
+// const collegeRouter = require("./routes/college.routes")
 
 //routes declaration
 app.use("/api/v1/users", userRouter);
+// app.use("/api/v1/colleges", collegeRouter);
 
 module.exports = { app }
