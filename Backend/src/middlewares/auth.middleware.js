@@ -27,6 +27,24 @@ const verifyJWT = asyncHandler(async(req, res, next) => {
     
 })
 
-const isReviewer = asyncHandler((req, res, next) => {})
+const isReviewer = asyncHandler((req, res, next) => {
+    try {
+        const user = req.user;
+
+        if(!user){
+            throw new ApiError(404, "User not found");
+        }
+
+        if(user.applicantType === "admission seeker"){
+            req.isReviewer = false;
+            next();
+        }
+
+        req.isReviewer = true;
+        next();
+    } catch (error) {
+        throw new ApiError(401, error || "Invalid access")
+    }
+})
 
 module.exports = {verifyJWT, isReviewer}

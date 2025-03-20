@@ -4,24 +4,39 @@ const collegeSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        lowercase: true
+        lowercase: true,
+        index: true,
+    },
+    collegeImage: {
+        type: String,
+        required: true
+    },
+    description: {
+        type: String,
+        required: true
+    },
+    // additionalImages:{
+    //     type: String
+    // },
+    location: {
+        type: String,
+        required: true
+    },
+    city:{
+        type: String,
+        required: true,
+        index: true
+    },
+    programs:{
+        type: Array,
+        required: true,
+        // index: true
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true
     },
-    collegeImage: {
-        type: String,
-    },
-    collegeInfo: {
-        type: String,
-        required: true
-    },
-    location: {
-        type: String,
-        required: true
-    }
 
 }, {timestamps: true})
 
