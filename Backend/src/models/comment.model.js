@@ -9,18 +9,22 @@ const commentSchema = new mongoose.Schema(
         },
         collegeId: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "College"
+            ref: "College",
+            required: true
         },
         owner: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "User"
-        }
+            ref: "User",
+            required: true
+        },
     },
     {
         timestamps: true
     }
 )
 
+commentSchema.index({ collegeId: 1 });
+commentSchema.index({ owner: 1 });
 
 commentSchema.plugin(mongooseAggregatePaginate)
 

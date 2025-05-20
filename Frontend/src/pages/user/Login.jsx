@@ -3,9 +3,9 @@
 /* eslint-disable react/no-unknown-property */
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import axios from "axios"
 import { Link, useNavigate } from 'react-router-dom';
 import { login } from "../../app/features/authSlice"
+import { useUserLogin } from '../../lib/react-query/mutationAndQuery'; 
 
 const LoginForm = () => {
 
@@ -22,6 +22,9 @@ const LoginForm = () => {
     const isValidEmail = (email) => {
         return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
     };
+
+    //react-query
+    const { mutateAsync: handleUserLogin} = useUserLogin();
 
     function handleErr(error){
         if (error.response) {
@@ -66,42 +69,9 @@ const LoginForm = () => {
         }
 
         try {
+            const user = await handleUserLogin({email, password});
 
-            const axiosInstance = axios.create({
-                baseURL: import.meta.env.VITE_BASE_URL,
-                withCredentials: true,
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            const response = await axiosInstance.post('/api/v1/users/login', {
-                email,
-                password
-            });
-            // console.log(response);
-
-            const data = response.data.data;
-
-            // setting tokens in local storage
-            localStorage.setItem('accessToken', data.accessToken);
-            localStorage.setItem('refreshToken', data.refreshToken);
-
-            // console.log("user details: ",response.data.data.user);
-            const userData = response.data.data.user;
-
-            // we need to inform the store about the login
-            const user = {
-                fullName: userData.fullName,
-                email: userData.email,
-                accessToken: userData.accessToken,
-                avatar: userData.avatar,
-                city: userData.city,
-                applicantType: userData.applicantType
-            }
             dispatch(login(user));
-
-            // navigating to home page
             navigate("/")
 
         } catch (error) {
@@ -137,6 +107,7 @@ const LoginForm = () => {
                             id="email"
                             type="email"
                             value={email}
+                            autoComplete='email'
                             required
                             onChange={(e) => { setEmail(e.target.value) }}
                             placeholder="m@example.com"
@@ -160,6 +131,7 @@ const LoginForm = () => {
                             id="password"
                             type="password"
                             value={password}
+                            autoComplete="current-password"
                             required
                             onChange={(e) => { setPassword(e.target.value) }}
                             className="w-full px-3 py-2 rounded-md bg-black border border-neutral-800 text-white placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-neutral-600 focus:border-transparent"

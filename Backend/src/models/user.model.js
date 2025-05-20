@@ -12,12 +12,18 @@ const userSchema = new mongoose.Schema({
         type: String,
         required: true,
         lowercase: true,
-        index: true
+        index: true,
+        // match: [/.+\@.+\..+/, 'Please fill a valid email address']
+        match: [/^[\w.-]+@[\w.-]+\.(ac|edu|res)\.in$/, 'Please fill a valid student email address']
     },
     password: {
         type: String,
-        // we can pass custom error message if we want
         required: [true, "Password is required"],
+        minlength: [8, "Password must be at least 8 characters long"]
+    },
+    coverImage: {
+        type: String,
+        default: "" // Add default value
     },
     city: {
         type: String,
@@ -34,27 +40,24 @@ const userSchema = new mongoose.Schema({
         type: String, // we will store the image in cloudinary aur yaha bs url store hoga
         required: true
     },
-    coverImage: {
-        type: String,
-    },
     refreshToken: {
         type: String
     },
 }, { timestamps: true })
 
 userSchema.pre("save", async function (next) {
-    if(!this.isModified("password")) return next();
+    if (!this.isModified("password")) return next();
 
     this.password = await bcrypt.hash(this.password, 10)
     next()
 })
 
 
-userSchema.methods.checkPassword= async function (password){
+userSchema.methods.checkPassword = async function (password) {
     return await bcrypt.compare(password, this.password)
 }
 
-userSchema.methods.generateAccessToken = function(){
+userSchema.methods.generateAccessToken = function () {
     return jwt.sign(
         {
             _id: this._id,
@@ -68,7 +71,7 @@ userSchema.methods.generateAccessToken = function(){
     )
 }
 
-userSchema.methods.generateRefreshToken = function(){
+userSchema.methods.generateRefreshToken = function () {
     return jwt.sign(
         {
             _id: this._id

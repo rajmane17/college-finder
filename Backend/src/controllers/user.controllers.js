@@ -62,6 +62,7 @@ const handleUserSignup = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Avatar file is required")
     }
 
+    //we need to upload the images on cloudinary once the user is verified.
     const avatar = await uploadOnCloudinary(avatarLocalPath)
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
 

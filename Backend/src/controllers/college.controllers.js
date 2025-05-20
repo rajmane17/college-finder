@@ -69,7 +69,7 @@ const handleAddCollege = asyncHandler(async (req, res) => {
         city: city.toLowerCase(),
         collegeImage: collegeImageUrl,
         programs: parsedPrograms || [],
-        addedBy: req.user._id
+        createdBy: req.user._id
     });
 
     if (!college) {

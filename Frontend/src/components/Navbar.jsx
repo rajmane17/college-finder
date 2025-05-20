@@ -1,22 +1,38 @@
-/* eslint-disable react/no-unescaped-entities */
 /* eslint-disable no-unused-vars */
-/* eslint-disable react/no-unknown-property */
-
-import React, { useState, useEffect } from 'react';
-import { Menu, Moon, Sun, User } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Moon, Sun, ChevronDown } from 'lucide-react';
 import { useSelector, useDispatch } from 'react-redux';
-import { toggleTheme, setTheme } from '../app/features/themeSlice';
-import { logout, setError } from "../app/features/authSlice";
-import axios from "axios"
+import { toggleTheme } from '../app/features/themeSlice';
+import { logout } from "../app/features/authSlice";
+import { Link } from "react-router-dom"
+
+//constants
+import { capitalizeFirstLetter } from '../lib/constants';
+
+//shadcn imports
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuGroup,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuPortal,
+    DropdownMenuSeparator,
+    DropdownMenuShortcut,
+    DropdownMenuSub,
+    DropdownMenuSubContent,
+    DropdownMenuSubTrigger,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { buttonVariants } from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
+import axios from 'axios';
 
 const Navbar = () => {
 
-    //for mobile view
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-
     const [selectedCity, setSelectedCity] = useState("Mumbai");
     const [isCityDropdownOpen, setIsCityDropdownOpen] = useState(false);
-    const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
 
     const dispatch = useDispatch();
     const getAvatar = useSelector((state) => state.auth.avatar);
@@ -33,30 +49,27 @@ const Navbar = () => {
         }
     }, [isDarkMode]);
 
-    function capitalizeFirstLetter(val) {
-        return String(val).charAt(0).toUpperCase() + String(val).slice(1);
-    }
-
     useEffect(() => {
-        const cityName =  capitalizeFirstLetter(city);
+        const cityName = capitalizeFirstLetter(city);
         setSelectedCity(cityName);
     }, [selectedCity])
 
     const handleLogout = async () => {
-        const axiosInstance = axios.create({
-            baseURL: import.meta.env.VITE_BASE_URL,
-            withCredentials: true,
-        })
         setIsLoading(true);
-
         try {
-            await axiosInstance.get("/api/v1/users/logout");
+            await axios.get(`${import.meta.env.VITE_BASE_URL}/api/v1/users/logout`, {
+                headers:{
+                    "Authorization": `Bearer ${localStorage.getItem("accessToken")}`
+                },
+                withCredentials: true
+            });
+
             dispatch(logout());
             localStorage.removeItem("accessToken");
             localStorage.removeItem("refreshToken");
         } catch (error) {
             console.log(error)
-        } finally{
+        } finally {
             setIsLoading(false);
         }
     };
@@ -66,35 +79,21 @@ const Navbar = () => {
     }, [selectedCity])
 
     return (
-        <nav className={`w-full ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white text-gray-800'} shadow-md`}>
+        <nav className={`w-full ${isDarkMode ? 'bg-zinc-800 text-white' : 'bg-gray-400 text-zinc-800'} sticky top-0 z-50`}>
             <div className="max-w-7xl mx-auto px-4">
                 <div className="flex items-center justify-between h-16">
-                    {/* Left Section */}
                     <div className="flex items-center">
-                        {/* Mobile Menu Button */}
-                        <button
-                            onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className="md:hidden p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
-                        >
-                            <Menu className="h-6 w-6" />
-                        </button>
-                        {/* Logo/Home */}
                         <a href="/" className="font-bold text-xl ml-2">Home</a>
                     </div>
 
-                    {/* Desktop Navigation */}
                     <div className="hidden md:flex items-center space-x-4">
-                        {/* City Dropdown */}
                         <div className="relative">
-                            <button
-                                onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
-                                // onMouseEnter={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
-                                // onMouseLeave={() => setIsCityDropdownOpen(!isCityDropdownOpen)}
-
-                                className="px-3 py-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-white"
-                            >
+                            <Button
+                            variant="ghost"
+                            onClick={() => setIsCityDropdownOpen(!isCityDropdownOpen)}>
                                 {selectedCity}
-                            </button>
+                                <ChevronDown className="h-5 w-5" />
+                            </Button>
                             {isCityDropdownOpen && (
                                 <div className="absolute z-10 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-700">
                                     <div className="py-1">
@@ -128,13 +127,9 @@ const Navbar = () => {
                                 </div>
                             )}
                         </div>
-                        <a href="/contact" className="px-3 py-2 rounded-md hover:bg-gray-100 hover:text-white dark:hover:bg-gray-700">
-                            Contact us
-                        </a>
-                        <a href="/review" className="px-3 py-2 rounded-md hover:bg-gray-100 hover:text-white dark:hover:bg-gray-700">
-                            Review our app
-                        </a>
-                        {/* Theme Toggle */}
+                        <Link to={"/contact"} className={buttonVariants({ variant: "ghost" })}>Contact us</Link>
+                        <Link to={"/review"} className={buttonVariants({ variant: "ghost" })}>Review our app</Link>
+
                         <button
                             onClick={
                                 () => {
@@ -142,35 +137,72 @@ const Navbar = () => {
                                     dispatch(toggleTheme());
                                 }
                             }
-                            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-white"
+                            className="p-2 rounded-md hover:bg-gray-100 hover:text-black cursor-pointer"
                         >
                             {isDarkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
                         </button>
-                        {/* Profile Dropdown */}
-                        <div className="relative">
-                            <button
-                                onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
-                                className="p-2 rounded-md" // hover:bg-gray-100 dark:hover:bg-gray-700
-                            >
-                                {/* <User className="h-5 w-5" /> */}
-                                <img src={getAvatar} className='h-12 w-12 rounded-full' />
-                            </button>
-                            {isProfileDropdownOpen && (
-                                <div className="absolute right-0 z-10 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-700">
-                                    <div className="py-1">
-                                        <a href="/profile" className="block px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600">
-                                            View Profile
-                                        </a>
-                                        <button
-                                            onClick={handleLogout}
-                                            className="block w-full text-left px-4 py-2 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-600"
-                                        >
-                                            Logout
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
+
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Avatar>
+                                    <AvatarImage src={getAvatar} />
+                                    <AvatarFallback>CN</AvatarFallback>
+                                </Avatar>
+
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent className="w-56">
+                                <DropdownMenuLabel>My Account</DropdownMenuLabel>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuGroup>
+                                    <a href="/profile">
+                                        <DropdownMenuItem>
+                                            Profile
+                                            <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
+                                        </DropdownMenuItem>
+                                    </a>
+                                    <DropdownMenuItem>
+                                        Billing
+                                        <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                        Settings
+                                        <DropdownMenuShortcut>⌘S</DropdownMenuShortcut>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                        Keyboard shortcuts
+                                        <DropdownMenuShortcut>⌘K</DropdownMenuShortcut>
+                                    </DropdownMenuItem>
+                                </DropdownMenuGroup>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuGroup>
+                                    <DropdownMenuItem>Team</DropdownMenuItem>
+                                    <DropdownMenuSub>
+                                        <DropdownMenuSubTrigger>Invite users</DropdownMenuSubTrigger>
+                                        <DropdownMenuPortal>
+                                            <DropdownMenuSubContent>
+                                                <DropdownMenuItem>Email</DropdownMenuItem>
+                                                <DropdownMenuItem>Message</DropdownMenuItem>
+                                                <DropdownMenuSeparator />
+                                                <DropdownMenuItem>More...</DropdownMenuItem>
+                                            </DropdownMenuSubContent>
+                                        </DropdownMenuPortal>
+                                    </DropdownMenuSub>
+                                    <DropdownMenuItem>
+                                        New Team
+                                        <DropdownMenuShortcut>⌘+T</DropdownMenuShortcut>
+                                    </DropdownMenuItem>
+                                </DropdownMenuGroup>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem>GitHub</DropdownMenuItem>
+                                <DropdownMenuItem>Support</DropdownMenuItem>
+                                <DropdownMenuItem disabled>API</DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem onClick={handleLogout}>
+                                    Log out
+                                    <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
             </div>

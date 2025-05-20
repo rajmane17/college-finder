@@ -1,3 +1,4 @@
+//users
 import Login from "./user/Login"
 import Signup from "./user/Signup"
 import Home from "./Home"
@@ -9,7 +10,12 @@ import CoverImageModal from "./user/CoverImageModal"
 import ProfileEditModal from "./user/ProfileEditModal"
 import ForgotPassword from "./user/ForgotPassword"
 
+//colleges
+import AddCollege from "./college/AddCollege"
+import CollegeProtectedWrapper from "./college/CollegeProtectedWrapper"
+
 export {
+    //users
     Login,
     Signup,
     Home,
@@ -19,5 +25,9 @@ export {
     ProfileImageModal,
     CoverImageModal,
     ProfileEditModal,
-    ForgotPassword
+    ForgotPassword,
+
+    //colleges
+    AddCollege,
+    CollegeProtectedWrapper
 }

@@ -22,15 +22,14 @@ const collegeSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    city:{
+    city: {
         type: String,
         required: true,
         index: true
     },
-    programs:{
-        type: Array,
-        required: true,
-        // index: true
+    programs: {
+        type: [String],
+        required: true
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
@@ -38,7 +37,7 @@ const collegeSchema = new mongoose.Schema({
         required: true
     },
 
-}, {timestamps: true})
+}, { timestamps: true })
 
 const College = mongoose.model("College", collegeSchema);
 

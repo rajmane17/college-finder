@@ -30,7 +30,7 @@ const SignupForm = () => {
 
     // Add email validation function
     const isValidEmail = (email) => {
-        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        return /^[\w.-]+@[\w.-]+\.(ac|edu|res)\.in$/.test(email);
     };
 
     const validateForm = () => {
@@ -47,7 +47,7 @@ const SignupForm = () => {
         }
 
         if (!isValidEmail(formData.email)) {
-            setError('Please enter a valid email address');
+            setError('Please enter a valid student email address');
             setIsLoading(false);
             return false;
         }
