@@ -30,23 +30,42 @@ const generateAccessAndRefereshTokens = async (userId) => {
     }
 }
 
+// handle this username uniqueness in FE only
+const isUsernameAvailable = async (username) => {
+    const user = await User.find({username});
+
+    if(user){
+        new ApiResponse(400, {
+            suggestion: {
+                //logic to get suggestions
+            }
+        }, "username not availabe")
+    }
+}
+
 const handleUserSignup = asyncHandler(async (req, res) => {
-    const { fullName, email, city, password, applicantType } = req.body;
+    const { fullName, email, city, password, applicantType, username } = req.body;
 
     if (
-        [fullName, email, city, password, applicantType].some((field) => field?.trim() === "")
+        [fullName, email, city, password, applicantType, username].some((field) => field?.trim() === "")
     ) {
         throw new ApiError(400, "All fields are required")
     }
 
-    if (!["admission seeker", "reviewer"].includes(applicantType)) {
-        throw new ApiError(400, "Invalid applicant type. Must be either 'admission seeker' or 'reviewer'")
+    if (!["admission seeker", "reviewer", "admin"].includes(applicantType)) {
+        throw new ApiError(400, "Invalid applicant type. Must be either 'admission seeker', 'reviewer' or 'admin'");
     }
 
     const existedUser = await User.findOne({ email })
 
     if (existedUser) {
         throw new ApiError(409, "User with this email already exists")
+    }
+
+    const existingUsername = await User.findOne({username});
+
+    if (existingUsername) {
+        throw new ApiError(409, "username unavailable, please try another username.")
     }
 
     const avatarLocalPath = req.files?.avatar[0]?.path;

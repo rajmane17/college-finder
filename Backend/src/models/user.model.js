@@ -8,12 +8,18 @@ const userSchema = new mongoose.Schema({
         required: true,
         lowercase: true
     },
+    username:{
+        type: String,
+        required: true,
+        unique: true,
+        index: true,
+        lowercase: true
+    },
     email: {
         type: String,
         required: true,
         lowercase: true,
         index: true,
-        // match: [/.+\@.+\..+/, 'Please fill a valid email address']
         match: [/^[\w.-]+@[\w.-]+\.(ac|edu|res)\.in$/, 'Please fill a valid student email address']
     },
     password: {
@@ -23,7 +29,7 @@ const userSchema = new mongoose.Schema({
     },
     coverImage: {
         type: String,
-        default: "" // Add default value
+        default: ""
     },
     city: {
         type: String,
@@ -33,7 +39,7 @@ const userSchema = new mongoose.Schema({
     },
     applicantType: {
         type: String,
-        enum: ["admission seeker", "reviewer"],
+        enum: ["admission seeker", "reviewer", "admin"],
         required: true
     },
     avatar: {
