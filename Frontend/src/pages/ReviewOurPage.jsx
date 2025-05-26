@@ -4,6 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertCircle, Star } from 'lucide-react';
+import axios from "axios";
 
 const ReviewOurApp = () => {
     const [formData, setFormData] = useState({
@@ -31,7 +32,7 @@ const ReviewOurApp = () => {
         setErrors((prev) => ({ ...prev, message: '' }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         const validationErrors = validateForm();
         if (Object.keys(validationErrors).length > 0) {
@@ -39,11 +40,19 @@ const ReviewOurApp = () => {
             return;
         }
 
-        // Simulate form submission (e.g., API call)
-        console.log('Review submitted:', formData);
-        setIsSubmitted(true);
-        setFormData({ rating: 0, message: '' });
-        setTimeout(() => setIsSubmitted(false), 3000); // Reset success message after 3s
+        try {
+            const sendReview = await axios.post(`${import.meta.env.VITE_BASE_URL}/api/v1/review/send-review`, 
+                formData,
+                { 
+                    withCredentials: true
+                });
+            console.log('Review submitted:', sendReview.data.data);
+            setIsSubmitted(true);
+            setFormData({ rating: 0, message: '' });
+            setTimeout(() => setIsSubmitted(false), 3000); // Reset success message after 3s
+        } catch (error) {
+            setErrors(error)
+        }
     };
 
     return (
