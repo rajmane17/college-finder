@@ -9,20 +9,21 @@ const {
     checkIfUserLikedComment
 } = require("../controllers/like.controllers.js");
 
+//Implementing this will be a bit difficult...
+
 // Get all likes for a comment
-router.get("/comment/:commentId", verifyJWT, isReviewer, getCommentLikes); // ==> 1
+router.get("/get-likes/:commentId", verifyJWT, isReviewer, getCommentLikes);
 
 // Toggle like on a comment
-router.post("/toggle/comment/:commentId", verifyJWT, isReviewer, toggleCommentLike); // ==> 2
-
-//=========================*====================*======================*==========================================
-// THE BELEOW ROUTES ARE A BIT COMPLEX SO INITIALLY, EXECUTE THE ABOVE ROUTES AND THEN MOVE TO BELOW ROUTES
-//=========================*====================*======================*==========================================
+router.get("/toggle/:commentId", verifyJWT, isReviewer, toggleCommentLike);
 
 // Check if user has liked a comment
-router.get("/check/comment/:commentId", verifyJWT, isReviewer, checkIfUserLikedComment);
+router.get("/check/:commentId", verifyJWT, isReviewer, checkIfUserLikedComment);
 
-// Get all comments liked by the current user
+// Get all comments liked by the logged in user
 router.get("/user/comments", verifyJWT, isReviewer, getLikedCommentsByUser);
+
+// Get all comments for a specific college
+router.get("/user/comments/:collegeId");
 
 module.exports = router;

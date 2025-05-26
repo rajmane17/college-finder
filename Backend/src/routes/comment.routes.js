@@ -11,14 +11,14 @@ const {
 } = require("../controllers/comment.controllers.js");
 
 // Comment routes
-router.route("/:collegeId")
+router.route("/create-comment/:collegeId")
     .post(verifyJWT, isReviewer, upload.none(), createComment)
+
+router.route("/:collegeId")
+    .get(verifyJWT, getCollegeComments)
 
 router.route("/:commentId")
     .patch(verifyJWT, upload.none(), updateComment)
     .delete(verifyJWT, deleteComment);
-
-router.route("/college/:collegeId")
-    .get(verifyJWT, getCollegeComments)
 
 module.exports = router
