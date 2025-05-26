@@ -18,7 +18,7 @@ app.use(session({ secret: "your-secret", resave: false, saveUninitialized: true 
 
 //routes import
 const userRouter = require("./routes/user.routes");
-const commentRoute = require("./routes/college.routes")
+const commentRoute = require("./routes/comment.routes")
 const likeRoute = require("./routes/like.routes");
 const collegeRouter = require("./routes/college.routes")
 

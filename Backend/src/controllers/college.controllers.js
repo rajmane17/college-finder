@@ -1,11 +1,10 @@
 const College = require("../models/college.model");
+const mongoose = require("mongoose");
 const { asyncHandler } = require("../utils/asyncHandler");
 const { ApiError } = require("../utils/apiError");
 const { ApiResponse } = require("../utils/apiResponse");
-const mongoose = require("mongoose");
 const { uploadOnCloudinary, deleteFromCloudinary } = require("../utils/cloudinary");
 
-// Add a new college ==> DONE
 const handleAddCollege = asyncHandler(async (req, res) => {
     const { name, description, location, city, programs } = req.body;
     // console.log( name, description, location, city, programs);
@@ -16,10 +15,14 @@ const handleAddCollege = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Required fields cannot be empty");
     }
 
-    const existingCollege = await College.findOne({ 
+    if(!req.isReviewer){
+        throw new ApiError(401, "unauthorized to perform this operation");
+    }
+
+    const existingCollege = await College.findOne({
         // we will find if there is a pre-existing college with same name and city
-        name: { $regex: new RegExp(`^${name}$`, 'i') }, 
-        city: { $regex: new RegExp(`^${city}$`, 'i') } 
+        name: { $regex: new RegExp(`^${name}$`, 'i') },
+        city: { $regex: new RegExp(`^${city}$`, 'i') }
     });
 
     if (existingCollege) {
@@ -33,11 +36,11 @@ const handleAddCollege = asyncHandler(async (req, res) => {
         // console.log("FILE: ",req.files);
         const collegeImageLocalPath = req.files.collegeImage[0].path;
         const uploadedImage = await uploadOnCloudinary(collegeImageLocalPath);
-        
+
         if (!uploadedImage) {
             throw new ApiError(500, "Error uploading college image");
         }
-        
+
         collegeImageUrl = uploadedImage.url;
     }
 
@@ -51,11 +54,11 @@ const handleAddCollege = asyncHandler(async (req, res) => {
     //     additionalImagesUrls = (await Promise.all(uploadPromises)).filter(url => url !== null);
     // }
 
-    // Parse programs as arrays if they're provided as strings
     let parsedPrograms = programs;
 
     if (programs && typeof programs === 'string') {
         try {
+            // we wrapped it up in try catch because it will throw an error if the string is not valid json
             parsedPrograms = JSON.parse(programs);
         } catch (error) {
             parsedPrograms = programs.split(',').map(item => item.trim());
@@ -84,16 +87,18 @@ const handleAddCollege = asyncHandler(async (req, res) => {
     );
 });
 
-// Updating the college details ==> DONE
-// I need to make some upgradations in this function. the one who have added the college can only update the college
-// I will do this by checking the addedBy field of the college and the user who is updating the college
+//college details can be only updated by the person who created it.
 const updateCollege = asyncHandler(async (req, res) => {
 
-    const {collegeId} = req.params;
-    const {name, description, programs} = req.body;
+    const { collegeId } = req.params;
+    const { name, description, programs } = req.body;
 
-    if(!collegeId){
+    if (!collegeId) {
         throw new ApiError(400, "College ID is required");
+    }
+
+    if(!req.isReviewer){
+        throw new ApiError(401, "unauthorized to perform this operation");
     }
 
     //checking if the provided college id is valid or not ==> Just to not waste our api call to the database
@@ -103,20 +108,20 @@ const updateCollege = asyncHandler(async (req, res) => {
 
     const college = await College.findById(collegeId);
 
-    if(!college){
+    if (!college) {
         throw new ApiError(404, "College not found");
     }
 
-    if(college.addedBy.toString() !== req.user._id.toString()){
+    if (college.addedBy.toString() !== req.user._id.toString()) {
         throw new ApiError(403, "You are not authorized to update this college");
     }
 
-    if(!name || !description || !programs){
+    if (!name || !description || !programs) {
         throw new ApiError(400, "Required fields cannot be empty");
     }
 
     //parsing programs as arrays if they are provided as strings
-        if (programs) {
+    if (programs) {
         if (typeof programs === 'string') {
             try {
                 parsedPrograms = JSON.parse(programs);
@@ -128,157 +133,161 @@ const updateCollege = asyncHandler(async (req, res) => {
         }
     }
 
-    if(req.files &&req.files.collegeImage && req.files.collegeImage.length > 0){
-        //provides us the local path where the image is stored
-        const collegeImageLocalPath = req.files.collegeImage[0].path;
+    // if (req.files && req.files.collegeImage && req.files.collegeImage.length > 0) {
+    //     //provides us the local path where the image is stored
+    //     const collegeImageLocalPath = req.files.collegeImage[0].path;
 
-        if(!collegeImageLocalPath){
-            throw new ApiError(500, "Error uploading college image");
-        }
+    //     if (!collegeImageLocalPath) {
+    //         throw new ApiError(500, "Error uploading college image");
+    //     }
 
-        //deleting the old image from cloudinary
-        if (college.collegeImage) {
-            const oldImagePublicId = college.collegeImage.split('/').pop().split('.')[0];
-            await deleteFromCloudinary(oldImagePublicId);
-        }
+    //     //deleting the old image from cloudinary
+    //     if (college.collegeImage) {
+    //         const oldImagePublicId = college.collegeImage.split('/').pop().split('.')[0];
+    //         await deleteFromCloudinary(oldImagePublicId);
+    //     }
 
-        //uploading the new image
-        const uploadedImage = await uploadOnCloudinary(collegeImageLocalPath);
+    //     //uploading the new image
+    //     const uploadedImage = await uploadOnCloudinary(collegeImageLocalPath);
 
-        if(!uploadedImage){
-            throw new ApiError(500, "Error uploading college image");
-        }
-        
-    }
+    //     if (!uploadedImage) {
+    //         throw new ApiError(500, "Error uploading college image");
+    //     }
+
+    // }
 
     const updateDetails = {
         name,
         description,
         programs: parsedPrograms,
-        collegeImage: uploadedImage.url
+        // collegeImage: uploadedImage.url
     }
 
     // $set is not mandotory but it is a good practice to use it as it just updates the fields which are provided
-    const updatedCollegeDetails = await College.findByIdAndUpdate(collegeId, {$set: updateDetails}, {new: true});
+    const updatedCollegeDetails = await College.findByIdAndUpdate(collegeId, { $set: updateDetails }, { new: true });
 
-    if(!updateDetails){
-        const cloudinaryPublicId = uploadedImage.url.split('/').pop().split('.')[0];
-        await deleteFromCloudinary(cloudinaryPublicId);
-        throw new ApiError(500, "Failed to update college");
-    }
+    // if (!updateDetails) {
+    //     const cloudinaryPublicId = uploadedImage.url.split('/').pop().split('.')[0];
+    //     await deleteFromCloudinary(cloudinaryPublicId);
+    //     throw new ApiError(500, "Failed to update college");
+    // }
 
     return res.status(200).json(
         new ApiResponse(200, updatedCollegeDetails, "College updated successfully")
     )
-    
-//     // Handle additional images if present
-//     if (req.files && req.files.additionalImages && req.files.additionalImages.length > 0) {
-//         // Delete old additional images from cloudinary
-//         if (college.additionalImages && college.additionalImages.length > 0) {
-//             for (const imageUrl of college.additionalImages) {
-//                 const publicId = imageUrl.split('/').pop().split('.')[0];
-//                 await deleteFromCloudinary(publicId);
-//             }
-//         }
-        
-//         // Upload new additional images
-//         const uploadPromises = req.files.additionalImages.map(async (file) => {
-//             const uploadedImage = await uploadOnCloudinary(file.path);
-//             return uploadedImage ? uploadedImage.url : null;
-//         });
-        
-//         const additionalImagesUrls = (await Promise.all(uploadPromises)).filter(url => url !== null);
-//         updateFields.additionalImages = additionalImagesUrls;
-//     }
+
+    //     // Handle additional images if present
+    //     if (req.files && req.files.additionalImages && req.files.additionalImages.length > 0) {
+    //         // Delete old additional images from cloudinary
+    //         if (college.additionalImages && college.additionalImages.length > 0) {
+    //             for (const imageUrl of college.additionalImages) {
+    //                 const publicId = imageUrl.split('/').pop().split('.')[0];
+    //                 await deleteFromCloudinary(publicId);
+    //             }
+    //         }
+
+    //         // Upload new additional images
+    //         const uploadPromises = req.files.additionalImages.map(async (file) => {
+    //             const uploadedImage = await uploadOnCloudinary(file.path);
+    //             return uploadedImage ? uploadedImage.url : null;
+    //         });
+
+    //         const additionalImagesUrls = (await Promise.all(uploadPromises)).filter(url => url !== null);
+    //         updateFields.additionalImages = additionalImagesUrls;
+    //     }
 
 });
 
-//deleting the college ==> DONE
-//A college can be deleted only by  the user who has created it
+//A college can be deleted only by the user who has created it
 const deleteCollege = asyncHandler(async (req, res) => {
-    
+
     const { collegeId } = req.params;
-    
+
     if (!collegeId) {
         throw new ApiError(400, "College ID is required");
     }
-    
+
+    if(!req.isReviewer){
+        throw new ApiError(401, "unauthorized to perform this operation");
+    }
+
     if (!mongoose.Types.ObjectId.isValid(collegeId)) {
         throw new ApiError(400, "Invalid college ID");
     }
-    
+
     // Find the college to delete
     const college = await College.findById(collegeId);
-    
+
     if (!college) {
         throw new ApiError(404, "College not found");
     }
 
-    if(college.addedBy.toString() !== req.user._id.toString()){
+    if (college.createdBy.toString() !== req.user._id.toString()) {
         throw new ApiError(403, "You are not authorized to delete this college");
     }
-    
+
     // Delete college images from cloudinary
     if (college.collegeImage) {
         const imagePublicId = college.collegeImage.split('/').pop().split('.')[0];
         await deleteFromCloudinary(imagePublicId);
     }
-    
+
     // Delete the college
     await College.findByIdAndDelete(collegeId);
-    
+
     // Note: In a production application, you would typically delete related data
     // such as comments, likes, etc., or implement soft deletion
-    
+
     return res.status(200).json(
         new ApiResponse(200, {}, "College deleted successfully")
     );
 });
 
-//Get the colleges of a specific city ==> DONE
+//Get the colleges of a specific city
 const getCollegesAccordingToCity = asyncHandler(async (req, res) => {
     const { city } = req.params;
-    
+
     if (!city) {
         throw new ApiError(400, "City is required");
     }
-    
-    //Important
-    const query = { city: { $regex: new RegExp(`^${city}$`, 'i') } };
-    
+
+    //contains query
+    const query = { city: { $regex: new RegExp(`${city}`, 'i') } };
+
     const colleges = await College.find(query)
 
-    if(!colleges){
+    if (!colleges) {
         return res.status(404).json(
             new ApiResponse(404, {}, "No college of this city are present")
         )
     }
-    
+
     //Remember this function which we get from mongoDb
     const totalColleges = await College.countDocuments(query);
-    
+
     return res.status(200).json(
         new ApiResponse(200, { colleges, totalColleges }, `Colleges in ${city} retrieved successfully`)
     );
 });
 
-// Get a specific college by ID ==> DONE
+// Get a specific college by ID
 const getCollege = asyncHandler(async (req, res) => {
 
-    const {collegeId} = req.params;
+    const { collegeId } = req.params;
+    console.log(collegeId);
 
-    if(!collegeId){
+    if (!collegeId) {
         throw new ApiError(400, "College ID is required");
     }
 
     // returns us a boolean value
-    if(!mongoose.Types.ObjectId.isValid(collegeId)){
+    if (!mongoose.Types.ObjectId.isValid(collegeId)) {
         throw new ApiError(400, "Invalid college ID");
     }
 
     const college = await College.findById(collegeId);
 
-    if(!college){
+    if (!college) {
         throw new ApiError(404, "College not found");
     }
 
@@ -287,122 +296,45 @@ const getCollege = asyncHandler(async (req, res) => {
     )
 });
 
-//=====================================*=========================*======================*======================================
-// FOR NOW ONLY THE ABOVE FUNCTIONS ARE IMPLEMENTED
-//=====================================*=========================*======================*====================================== 
-
-// Get all colleges with pagination 
+// Get all colleges (handle pagination in FE)
 const getAllColleges = asyncHandler(async (req, res) => {
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 10;
-    const skip = (page - 1) * limit;
-    
-    const colleges = await College.find()
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .select('name city collegeImage ratings views')
-        .exec();
-    
-    const totalColleges = await College.countDocuments();
-    
-    const pagination = {
-        currentPage: page,
-        totalPages: Math.ceil(totalColleges / limit),
-        totalItems: totalColleges,
-        hasNextPage: page < Math.ceil(totalColleges / limit),
-        hasPrevPage: page > 1
-    };
-    
+    const colleges = await College.find();
+
+    if(!colleges){
+        throw new ApiError(500, "Unable to get colleges")
+    }
+
     return res.status(200).json(
-        new ApiResponse(200, { colleges, pagination }, "Colleges retrieved successfully")
+        new ApiResponse(200, { colleges }, "Colleges retrieved successfully")
     );
 });
 
-// Search colleges by name or other criteria 
+// Search colleges by name
 const searchColleges = asyncHandler(async (req, res) => {
-    const { q, city, program } = req.query;
-    
+
+    const { search, city, program } = req.query;
+
     // Build query object
     const query = {};
-    
-    if (q) {
+
+    if (search) {
         query.name = { $regex: q, $options: 'i' };
     }
-    
+
     if (city) {
         query.city = { $regex: new RegExp(`^${city}$`, 'i') };
     }
-    
+
     if (program) {
         query.programs = { $elemMatch: { $regex: program, $options: 'i' } };
     }
-    
-    const colleges = await College.find(query)
-    
+
+    const colleges = await College.find(query);
+
     const totalColleges = await College.countDocuments(query);
-    
-    return res.status(200).json(
-        new ApiResponse(200, { colleges, pagination }, "Search results retrieved successfully")
-    );
-});
 
-//get top rated college
-// const getTopRatedColleges = asyncHandler(async (req, res) => {
-//     const limit = parseInt(req.query.limit) || 5;
-    
-//     const colleges = await College.find({ "ratings.totalReviews": { $gt: 0 } })
-//         .sort({ "ratings.overall": -1 })
-//         .limit(limit)
-//         .select('name city collegeImage ratings views')
-//         .exec();
-    
-//     return res.status(200).json(
-//         new ApiResponse(200, colleges, "Top rated colleges retrieved successfully")
-//     );
-// });
-
-// Get analytics for a college
-const getAnalytics = asyncHandler(async (req, res) => {
-    const { collegeId } = req.params;
-    
-    if (!collegeId) {
-        throw new ApiError(400, "College ID is required");
-    }
-    
-    if (!mongoose.Types.ObjectId.isValid(collegeId)) {
-        throw new ApiError(400, "Invalid college ID");
-    }
-    
-    const college = await College.findById(collegeId);
-    
-    if (!college) {
-        throw new ApiError(404, "College not found");
-    }
-    
-    // Gather additional analytics data
-    // For example, count of comments, likes, etc.
-    
-    // Using the Comment model which we saw in other controllers
-    const Comment = require("../models/comment.model");
-    const commentsCount = await Comment.countDocuments({ collegeId });
-    
-    // Get ratings distribution
-    const analytics = {
-        views: college.views || 0,
-        commentsCount,
-        ratings: college.ratings || {
-            overall: 0,
-            academics: 0,
-            infrastructure: 0,
-            placement: 0,
-            valueForMoney: 0,
-            totalReviews: 0
-        }
-    };
-    
     return res.status(200).json(
-        new ApiResponse(200, analytics, "College analytics retrieved successfully")
+        new ApiResponse(200, { colleges, totalColleges }, "Search results retrieved successfully")
     );
 });
 
@@ -412,8 +344,6 @@ module.exports = {
     getAllColleges,
     getCollegesAccordingToCity,
     searchColleges,
-    // getTopRatedColleges,
     updateCollege,
     deleteCollege,
-    getAnalytics
 };

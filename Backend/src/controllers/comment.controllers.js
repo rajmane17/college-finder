@@ -9,14 +9,13 @@ const createComment = asyncHandler(async(req, res) => {
     const {collegeId} = req.params;
 
     if(!content){
-        throw new ApiError(400, "Please enter the content")
+        throw new ApiError(400, "Please enter the content");
     }
 
     if(!collegeId){
-        throw new ApiError(400, "College ID is required")
+        throw new ApiError(400, "College ID is required");
     }
 
-    // Validate if collegeId is a valid ObjectId
     if(!mongoose.Types.ObjectId.isValid(collegeId)){
         throw new ApiError(400, "Invalid college ID")
     }
@@ -88,14 +87,15 @@ const updateComment = asyncHandler(async(req, res) => {
         throw new ApiError(404, "Comment not found")
     }
 
-    // Checking if the user is the owner of the comment
     if(comment.owner.toString() !== req.user._id.toString()){
         throw new ApiError(403, "You are not authorized to update this comment")
     }
 
     const updatedComment = await Comment.findByIdAndUpdate(
         commentId,
-        {$set: {content}},
+        {
+            $set: {content}
+        },
         {
             new: true // return us updated comment
         }
@@ -112,8 +112,7 @@ const updateComment = asyncHandler(async(req, res) => {
     )
 })
 
-// To under this controller you need to understand aggregates
-// important
+//complex aggregate queries
 const getCollegeComments = asyncHandler(async(req, res) => {
     const {collegeId} = req.params;
 
@@ -174,6 +173,7 @@ const getCollegeComments = asyncHandler(async(req, res) => {
             limit: parseInt(req.query.limit) || 10
         }
     );
+    console.log("comments", comments);
 
     if(!comments || comments.docs.length === 0){
         return res.status(200).json(
