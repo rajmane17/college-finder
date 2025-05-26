@@ -1,5 +1,4 @@
 const User = require("../models/user.model");
-const cloudinary = require("cloudinary");
 const {options} = require("../config")
 
 // utils import
@@ -56,6 +55,13 @@ const handleUserSignup = asyncHandler(async (req, res) => {
 
     if (!["admission seeker", "reviewer", "admin"].includes(applicantType)) {
         throw new ApiError(400, "Invalid applicant type. Must be either 'admission seeker', 'reviewer' or 'admin'");
+    }
+
+    if(applicantType === "reviewer"){
+        const studentEmailIdRegex = /^[\w.-]+@[\w.-]+\.(ac|edu|res)\.in$/
+        if(!studentEmailIdRegex.test(email)){
+            throw new ApiError(400, "Reviewer's need to enter their student email id");
+        }
     }
 
     const existedUser = await User.findOne({ email })

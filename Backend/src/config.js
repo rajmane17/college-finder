@@ -1,6 +1,6 @@
 const rateLimit = require("express-rate-limit");
 
-export const options = {
+const options = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
@@ -9,15 +9,17 @@ export const options = {
 }
 
 // Rate limiting for sensitive routes
-export const otpLimiter = rateLimit({
+const otpLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 3, // limit each IP to 3 requests per windowMs
     message: "Too many attempts, please try again after 15 minutes"
 });
 
 // Debug middleware
-export const debugMiddleware = (req, res, next) => {
+const debugMiddleware = (req, res, next) => {
     console.log('Request files:', req.files);
     console.log('Request body:', req.body);
     next();
 };
+
+module.exports = {debugMiddleware, otpLimiter, options};
