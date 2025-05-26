@@ -1,5 +1,6 @@
 const User = require("../models/user.model");
 const cloudinary = require("cloudinary");
+const {options} = require("../config")
 
 // utils import
 const { uploadOnCloudinary, deleteFromCloudinary } = require("../utils/cloudinary");
@@ -32,9 +33,9 @@ const generateAccessAndRefereshTokens = async (userId) => {
 
 // handle this username uniqueness in FE only
 const isUsernameAvailable = async (username) => {
-    const user = await User.find({username});
+    const user = await User.find({ username });
 
-    if(user){
+    if (user) {
         new ApiResponse(400, {
             suggestion: {
                 //logic to get suggestions
@@ -43,6 +44,7 @@ const isUsernameAvailable = async (username) => {
     }
 }
 
+//add a small info in FE that enter username in lowercase
 const handleUserSignup = asyncHandler(async (req, res) => {
     const { fullName, email, city, password, applicantType, username } = req.body;
 
@@ -62,30 +64,15 @@ const handleUserSignup = asyncHandler(async (req, res) => {
         throw new ApiError(409, "User with this email already exists")
     }
 
-    const existingUsername = await User.findOne({username});
+    const existingUsername = await User.findOne({ username });
 
     if (existingUsername) {
         throw new ApiError(409, "username unavailable, please try another username.")
     }
 
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    //const coverImageLocalPath = req.files?.coverImage[0]?.path;
-
-    let coverImageLocalPath;
-    if (req.files && Array.isArray(req.files.coverImage) && req.files.coverImage.length > 0) {
-        coverImageLocalPath = req.files.coverImage[0].path
-    }
-
 
     if (!avatarLocalPath) {
-        throw new ApiError(400, "Avatar file is required")
-    }
-
-    //we need to upload the images on cloudinary once the user is verified.
-    const avatar = await uploadOnCloudinary(avatarLocalPath)
-    const coverImage = await uploadOnCloudinary(coverImageLocalPath)
-
-    if (!avatar) {
         throw new ApiError(400, "Avatar file is required")
     }
 
@@ -113,16 +100,15 @@ const handleUserSignup = asyncHandler(async (req, res) => {
         password,
         city,
         applicantType,
-        avatar: avatar.url,
-        coverImage: coverImage?.url || "",
+        avatar: avatarLocalPath,
+        username
     }
-    console.log(req.session.tempUser)
 
     return res.status(200).json(
         new ApiResponse(200, {
             email
         },
-            "OTP sent successfully")
+        "OTP sent successfully")
     )
 })
 
@@ -137,7 +123,6 @@ const verifyOTP = asyncHandler(async (req, res) => {
         );
     }
 
-    // Get temporary user data
     const userData = req.session.tempUser;
     if (!userData) {
         return res.status(400).json(
@@ -145,40 +130,36 @@ const verifyOTP = asyncHandler(async (req, res) => {
         )
     }
 
-    // create user
+    const avatarLocalPath = userData.avatar;
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+
     const user = await User.create({
         fullName: userData.fullName,
-        avatar: userData.avatar,
-        coverImage: userData.coverImage,
+        avatar: avatar.url,
         email: userData.email,
         password: userData.password,
         city: userData.city,
-        applicantType: userData.applicantType
+        applicantType: userData.applicantType,
+        username: userData.username
     })
-    console.log(user);
-
-    //In this function the refresh token is being set automatically and we are taking accessToken here.
-    const { accessToken } = await generateAccessAndRefereshTokens(user._id);
 
     const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"
     )
 
     if (!createdUser) {
+        //If the user creation has failed then we should delete the uploaded image on cloudinary.
+        const avatarPublicId = user.avatar.split('/').pop().split('.')[0];
+        await deleteFromCloudinary(avatarPublicId);
         throw new ApiError(500, "Something went wrong while registering the user")
     }
+
+    //In this function the refresh token is being set automatically and we are taking accessToken here.
+    const { accessToken } = await generateAccessAndRefereshTokens(user._id);
 
     // Clear temporary data
     delete req.session.tempUser;
     await Otp.deleteOne({ email });
-
-    const options = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        path: "/",
-        domain: process.env.NODE_ENV === "production" ? process.env.DOMAIN : "localhost"
-    }
 
     return res
         .status(201)
@@ -217,16 +198,7 @@ const handleUserLogin = asyncHandler(async (req, res) => {
 
     const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(user._id);
 
-    const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
-
-    const options = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        path: "/",
-        domain: process.env.NODE_ENV === "production" ? process.env.DOMAIN : "localhost"
-    }
-
+    const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
     return res
         .status(200)
@@ -251,18 +223,7 @@ const handleUserLogout = asyncHandler(async (req, res) => {
                 refreshToken: undefined
             }
         },
-        {
-            new: true // return updated document instead of original
-        }
     )
-
-    const options = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        path: "/",
-        domain: process.env.NODE_ENV === "production" ? process.env.DOMAIN : "localhost"
-    }
 
     return res
         .status(200)
@@ -274,7 +235,7 @@ const handleUserLogout = asyncHandler(async (req, res) => {
 })
 
 const handleAvatarChange = asyncHandler(async (req, res) => {
-    // Check if files exist in request
+
     if (!req.files || !req.files.avatar || !req.files.avatar.length > 0) {
         throw new ApiError(400, "Avatar file is required")
     }
@@ -285,15 +246,14 @@ const handleAvatarChange = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Avatar file is required")
     }
 
-    // Delete old avatar from cloudinary (optional but recommended)
     const user = await User.findById(req.user._id);
+
     if (user.avatar) {
-        // Extract public_id from the old avatar URL
         const oldAvatarPublicId = user.avatar.split('/').pop().split('.')[0];
-        await cloudinary.uploader.destroy(oldAvatarPublicId);
+        await deleteFromCloudinary(oldAvatarPublicId);
     }
 
-    const avatar = await uploadOnCloudinary(avatarLocalPath)
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
 
     if (!avatar) {
         throw new ApiError(500, "Error while uploading avatar")
@@ -306,8 +266,16 @@ const handleAvatarChange = asyncHandler(async (req, res) => {
                 avatar: avatar.url
             }
         },
-        { new: true }
-    ).select("-password -refreshToken")
+        { 
+            new: true // return updated document instead of original
+        }
+    ).select("-password -refreshToken");
+
+    if(!updatedUser){
+        const newAvatarPublicId = avatar.split('/').pop().split('.')[0];
+        await deleteFromCloudinary(newAvatarPublicId);
+        throw new ApiError(500, "failed to update avatar");
+    }
 
     return res
         .status(200)
@@ -315,7 +283,7 @@ const handleAvatarChange = asyncHandler(async (req, res) => {
 });
 
 const handleCoverImgChange = asyncHandler(async (req, res) => {
-    // Check if files exist in request
+
     if (!req.files || !req.files.coverImage || !req.files.coverImage.length > 0) {
         throw new ApiError(400, "Cover image file is required")
     }
@@ -326,12 +294,11 @@ const handleCoverImgChange = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Cover image file is required")
     }
 
-    // Delete old cover image from cloudinary (optional but recommended)
     const user = await User.findById(req.user._id);
+
     if (user.coverImage) {
-        // Extract public_id from the old cover image URL
         const oldCoverImagePublicId = user.coverImage.split('/').pop().split('.')[0];
-        await cloudinary.uploader.destroy(oldCoverImagePublicId);
+        await deleteFromCloudinary(oldCoverImagePublicId);
     }
 
     const coverImage = await uploadOnCloudinary(coverImageLocalPath)
@@ -348,7 +315,13 @@ const handleCoverImgChange = asyncHandler(async (req, res) => {
             }
         },
         { new: true }
-    ).select("-password -refreshToken")
+    ).select("-password -refreshToken");
+
+    if(!updatedUser){
+        const coverImagePublicId = coverImage.split('/').pop().split('.')[0];
+        await deleteFromCloudinary(coverImagePublicId);
+        throw new ApiError(500, "failed to update avatar");
+    }
 
     return res
         .status(200)
@@ -356,15 +329,17 @@ const handleCoverImgChange = asyncHandler(async (req, res) => {
 });
 
 const handleUserDetailsUpdate = asyncHandler(async (req, res) => {
-    const { fullName, city } = req.body;
+    //add the logic such that the username can also be changed but a limited no, of times
+    const { fullName, city, description } = req.body;
 
-    if (!fullName && !city) {
+    if (!fullName && !city && !description) {
         throw new ApiError(400, "At least one field is required to update")
     }
 
     const updateFields = {}
-    if (fullName) updateFields.fullName = fullName.toLowerCase()
-    if (city) updateFields.city = city.toLowerCase()
+    if (fullName) updateFields.fullName = fullName;
+    if (city) updateFields.city = city;
+    if(description) updateFields.description = description;
 
     const user = await User.findByIdAndUpdate(
         req.user._id,
@@ -412,35 +387,25 @@ const handlePasswordChange = asyncHandler(async (req, res) => {
 })
 
 const handleDeleteUser = asyncHandler(async (req, res) => {
-    // Delete user from database
+
     const deleteUser = await User.findByIdAndDelete(req.user._id);
 
     if (!deleteUser) {
         throw new ApiError(404, "User not found")
     }
 
-    //Deleting the avatar file from cloudinary
     if (deleteUser.avatar) {
         const oldAvatarPublicId = deleteUser.avatar.split('/').pop().split('.')[0];
-        await cloudinary.uploader.destroy(oldAvatarPublicId);
-        // console.log("avatar deleted successfully");
+        await deleteFromCloudinary(oldAvatarPublicId);
     }
 
     if (deleteUser.coverImage !== "") {
         const oldCoverImagePublicId = deleteUser.avatar.split('/').pop().split('.')[0];
-        await cloudinary.uploader.destroy(oldCoverImagePublicId);
-        // console.log("Cover image deleted successfully");
+        await deleteFromCloudinary(oldCoverImagePublicId);
     }
 
-    const options = {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-        path: "/",
-        domain: process.env.NODE_ENV === "production" ? process.env.DOMAIN : "localhost"
-    }
+    //if the user was a reviewer, add the logic such that all its comments and likes will also be deleted.
 
-    // Clear authentication cookies
     return res
         .status(200)
         .clearCookie("accessToken", options)
@@ -471,18 +436,20 @@ const checkPassword = asyncHandler(async (req, res) => {
     )
 })
 
-const forgotPassword = asyncHandler(async (req, res) => {})
+const forgotPassword = asyncHandler(async (req, res) => {
+    //think of a appropriate logic for this controller
+})
 
 module.exports = {
     handleUserSignup,
     handleUserLogin,
     handleUserLogout,
     verifyOTP,
-    handleAvatarChange, 
-    handleCoverImgChange, 
+    handleAvatarChange,
+    handleCoverImgChange,
     handleUserDetailsUpdate,
-    handlePasswordChange, 
-    handleDeleteUser, 
+    handlePasswordChange,
+    handleDeleteUser,
     checkPassword,
     forgotPassword
 }
