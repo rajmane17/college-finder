@@ -138,11 +138,9 @@ const SignupForm = () => {
                 }
             );
 
-            // Store token in localStorage
             localStorage.setItem('accessToken', response.data.data.accessToken);
 
             const userData = response.data.data.createdUser;
-            // console.log(userData);
 
             const user = {
                 fullName: userData.fullName,
@@ -153,10 +151,7 @@ const SignupForm = () => {
                 applicantType: userData.applicantType
             }
 
-            // updating the state
             dispatch(signup(user));
-
-            // navigating to home page
             navigate('/');
 
         } catch (error) {
@@ -327,6 +322,22 @@ const SignupForm = () => {
                                 />
                                 <label htmlFor="reviewer" class="ml-2 text-sm text-neutral-400">
                                     Reviewer
+                                </label>
+                            </div>
+                            <div class="flex items-center">
+                                <input
+                                    type="radio"
+                                    id="admissionSeeker"
+                                    name="applicantType"
+                                    value="admission seeker"
+                                    checked={formData.applicantType === "admin"}
+                                    onChange={(e) => {
+                                        setFormData({ ...formData, applicantType: e.target.value })
+                                    }}
+                                    class="w-4 h-4 text-white bg-black border-neutral-800 focus:ring-2 focus:ring-neutral-600"
+                                />
+                                <label htmlFor="admissionSeeker" class="ml-2 text-sm text-neutral-400">
+                                    Admin
                                 </label>
                             </div>
                         </div>
